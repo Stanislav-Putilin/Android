@@ -2,7 +2,14 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="app_background">#9C6AED</color>
-    <color name="app_foreground">#BEEF64</color>
-    <color name="main_btn_background">#4E710D</color>
+
+    <color name="app_background">#FFEBEE</color>
+
+
+    <color name="app_foreground">#0A0A4C</color>
+
+    <color name="main_btn_background">#1ADB23</color>
+
+    <color name="app_shadow">#D34012</color>
+
 </resources>
