@@ -4,12 +4,19 @@
     <color name="white">#FFFFFFFF</color>
 
     <color name="app_background">#FFEBEE</color>
-
-
     <color name="app_foreground">#0A0A4C</color>
-
     <color name="main_btn_background">#1ADB23</color>
-
     <color name="app_shadow">#D34012</color>
+
+    <color name="calc_layout_background">#1E1F22</color>
+    <color name="calc_text_color">#FEFEFE</color>
+    <color name="calc_history_color">#A5A5A5</color>
+    <color name="calc_btn_digit">#514D4D</color>
+    <color name="calc_btn_operation">#323232</color>
+    <color name="calc_btn_equal">#AFC5CA</color>
+
+    <color name="calc_text_color_equal">#000000</color>
+
+
 
 </resources>
