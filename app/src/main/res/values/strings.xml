@@ -30,5 +30,10 @@
     <string name="calc_btn_digit_7">7</string>
     <string name="calc_btn_digit_8">8</string>
     <string name="calc_btn_digit_9">9</string>
+    <string name="error_divide_by_zero">error divide by zero</string>
+
+    <string name="main_btn_game">2048</string>
+
     <!-- endregion -->
+
 </resources>

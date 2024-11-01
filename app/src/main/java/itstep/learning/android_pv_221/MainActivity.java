@@ -14,12 +14,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        findViewById(R.id.main_btn_game).setOnClickListener(this::onGameButtonClick);
         findViewById(R.id.main_btn_calc).setOnClickListener(this::onCalcButtonClick);
     }
 
     private void onCalcButtonClick(View view)
     {
         Intent intent = new Intent( MainActivity.this, CalcActivity.class);
+        startActivity(intent);
+        //Toast.makeText(this, "Тут будет калькулятор", Toast.LENGTH_SHORT).show();
+    }
+
+    private void onGameButtonClick(View view)
+    {
+        Intent intent = new Intent( MainActivity.this, GameActivity.class);
         startActivity(intent);
         //Toast.makeText(this, "Тут будет калькулятор", Toast.LENGTH_SHORT).show();
     }

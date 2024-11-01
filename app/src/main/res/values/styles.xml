@@ -3,7 +3,7 @@
 
     <style name="calc_btn">
         <item name="android:fontFamily">@font/neucharegular</item>
-        <item name="android:textSize">22sp</item>
+        <item name="android:textSize">20sp</item>
         <item name="android:textStyle">normal</item>
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_weight">1</item>
@@ -23,6 +23,20 @@
     <style name="calc_btn_equal" parent="calc_btn">
         <item name="android:background">@drawable/calc_btn_equal</item>
         <item name="android:textColor">@color/calc_text_color_equal</item>
+    </style>
+
+    <style name="game_cell">
+        <item name="android:background">@drawable/game_cel</item>
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:layout_margin">5dp</item>
+    </style>
+
+    <style name="game_cell_0" parent="game_cell">
+
     </style>
 
 </resources>
