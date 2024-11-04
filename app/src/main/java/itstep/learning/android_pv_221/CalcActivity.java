@@ -17,7 +17,6 @@ public class CalcActivity extends AppCompatActivity {
 
     private TextView tvResult;
     private TextView tvHistory;
-
     private static final int maxDigits = 9;
     private String zeroSign;
     private double firstOperand = 0;
@@ -25,7 +24,6 @@ public class CalcActivity extends AppCompatActivity {
     private String currentOperation = "";
     private boolean resetOnNextInput = false;
     private boolean isRepeatEquals = false;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +48,10 @@ public class CalcActivity extends AppCompatActivity {
 
         findViewById(R.id.calc_btn_square).setOnClickListener(this::btnClickSquare);
 
+        findViewById(R.id.calc_btn_sqrt).setOnClickListener(this::btnClickSquareRoot);
+        findViewById(R.id.calc_btn_inverse).setOnClickListener(this::btnClickReciprocal);
+        findViewById(R.id.calc_btn_ce).setOnClickListener(this::btnClickCE);
+        findViewById(R.id.calc_btn_percent).setOnClickListener(this::btnClickPercent);
 
         for (int i = 0; i < 10; i++)
         {
@@ -59,18 +61,28 @@ public class CalcActivity extends AppCompatActivity {
         }
         btnClickC(null);
     }
-
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putCharSequence("tv_result", tvResult.getText());
+        outState.putCharSequence("tv_history", tvHistory.getText());
+        outState.putDouble("first_operand", firstOperand);
+        outState.putDouble("second_operand", secondOperand);
+        outState.putString("current_operation", currentOperation);
+        outState.putBoolean("reset_on_next_input", resetOnNextInput);
+        outState.putBoolean("is_repeat_equals", isRepeatEquals);
     }
     @Override
     protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         tvResult.setText(savedInstanceState.getCharSequence("tv_result"));
+        tvHistory.setText(savedInstanceState.getCharSequence("tv_history"));
+        firstOperand = savedInstanceState.getDouble("first_operand");
+        secondOperand = savedInstanceState.getDouble("second_operand");
+        currentOperation = savedInstanceState.getString("current_operation", "");
+        resetOnNextInput = savedInstanceState.getBoolean("reset_on_next_input", false);
+        isRepeatEquals = savedInstanceState.getBoolean("is_repeat_equals", false);
     }
-
     private void btnClickBackspace(View view)
     {
         String resText = tvResult.getText().toString();
@@ -104,6 +116,17 @@ public class CalcActivity extends AppCompatActivity {
     private void btnClickC(View view)
     {
         tvResult.setText(zeroSign);
+        tvHistory.setText("");
+        firstOperand = 0;
+        secondOperand = 0;
+        currentOperation = "";
+        resetOnNextInput = false;
+        isRepeatEquals = false;
+    }
+
+    private void btnClickCE(View view) {
+        tvResult.setText(zeroSign);
+        resetOnNextInput = true;
         isRepeatEquals = false;
     }
 
@@ -158,18 +181,95 @@ public class CalcActivity extends AppCompatActivity {
             currentOperation = "^2";
             double result = firstOperand * firstOperand;
 
-            String formattedResult = (result % 1 == 0)
-                    ? String.format(Locale.ROOT, "%.0f", result)
-                    : String.format(Locale.ROOT, "%.8f", result).replaceAll("0+$", "").replaceAll("\\.$", "");
+            String formattedResult = formatResult(result);
 
-            tvResult.setText(formattedResult.length() > maxDigits
-                    ? String.format(Locale.ROOT, "%.6g", result)
-                    : formattedResult);
+            tvResult.setText(formattedResult);
 
             tvHistory.setText(firstOperand + " ^2 = " + formattedResult);
             firstOperand = result;
             resetOnNextInput = true;
             isRepeatEquals = true;
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void btnClickSquareRoot(View view) {
+        try {
+            NumberFormat format = NumberFormat.getInstance(Locale.ROOT);
+            currentOperation = "√";
+            firstOperand = format.parse(tvResult.getText().toString()).doubleValue();
+
+            if (firstOperand < 0)
+            {
+                tvResult.setText(R.string.error_invalid_input);
+                tvHistory.setText("");
+                return;
+            }
+
+            double result = Math.sqrt(firstOperand);
+
+            String formattedResult = formatResult(result);
+
+            tvResult.setText(formattedResult);
+            tvHistory.setText("√" + firstOperand + " = " + formattedResult);
+
+            firstOperand = result;
+            resetOnNextInput = true;
+            isRepeatEquals = true;
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void btnClickReciprocal(View view) {
+        try {
+            NumberFormat format = NumberFormat.getInstance(Locale.ROOT);
+            firstOperand = format.parse(tvResult.getText().toString()).doubleValue();
+            currentOperation = "1/x";
+
+            if (firstOperand == 0) {
+                tvResult.setText(R.string.error_divide_by_zero);
+                tvHistory.setText("");
+                return;
+            }
+
+            double result = 1 / firstOperand;
+
+            String formattedResult = formatResult(result);
+            tvResult.setText(formattedResult);
+            tvHistory.setText("1 / " + firstOperand + " = " + formattedResult);
+
+            firstOperand = result;
+            resetOnNextInput = true;
+            isRepeatEquals = true;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+    private void btnClickPercent(View view) {
+        try {
+            NumberFormat format = NumberFormat.getInstance(Locale.ROOT);
+            double currentValue = format.parse(tvResult.getText().toString()).doubleValue();
+
+            if (!currentOperation.isEmpty() && !isRepeatEquals) {
+
+                secondOperand = firstOperand * currentValue / 100;
+                String formattedResult = formatResult(secondOperand);
+
+                tvResult.setText(formattedResult);
+                tvHistory.setText(firstOperand + " " + currentOperation + " " + formattedResult);
+
+            } else {
+                double result = currentValue / 100;
+                String formattedResult = formatResult(result);
+                tvResult.setText(formattedResult);
+                tvHistory.setText(currentValue + "% = " + formattedResult);
+            }
+
+            resetOnNextInput = true;
+            isRepeatEquals = false;
         } catch (ParseException e) {
             e.printStackTrace();
         }
@@ -191,12 +291,14 @@ public class CalcActivity extends AppCompatActivity {
     private void btnClickEquals(View view) {
         if (!currentOperation.isEmpty()) {
             try {
-
                 NumberFormat format = NumberFormat.getInstance(Locale.ROOT);
 
-                if (!isRepeatEquals || currentOperation.equals("^2")) {
-                    secondOperand = currentOperation.equals("^2") ? firstOperand : format.parse(tvResult.getText().toString()).doubleValue();
+                if (!isRepeatEquals) {
+                    secondOperand = format.parse(tvResult.getText().toString()).doubleValue();
                     isRepeatEquals = true;
+                } else if (!currentOperation.equals("√") && !currentOperation.equals("1/x")) {
+
+                    firstOperand = format.parse(tvResult.getText().toString()).doubleValue();
                 }
 
                 double result = 0;
@@ -223,19 +325,42 @@ public class CalcActivity extends AppCompatActivity {
                     case "^2":
                         result = firstOperand * firstOperand;
                         break;
+
+                    case "√":
+                        if (firstOperand < 0) {
+                            tvResult.setText(R.string.error_invalid_input);
+                            tvHistory.setText("");
+                            return;
+                        }
+                        result = Math.sqrt(firstOperand);
+                        break;
+                    case "1/x":
+                        if (firstOperand == 0) {
+                            tvResult.setText(R.string.error_divide_by_zero);
+                            tvHistory.setText("");
+                            return;
+                        }
+                        result = 1 / firstOperand;
+                        break;
                 }
 
-                String formattedResult = (result % 1 == 0)
-                        ? String.format(Locale.ROOT, "%.0f", result)
-                        : String.format(Locale.ROOT, "%.8f", result).replaceAll("0+$", "").replaceAll("\\.$", "");
+                String formattedResult = formatResult(result);
+                tvResult.setText(formattedResult);
 
-                tvResult.setText(formattedResult.length() > maxDigits
-                        ? String.format(Locale.ROOT, "%.6g", result)
-                        : formattedResult);
+                String operationText;
 
-                tvHistory.setText(firstOperand + " " + currentOperation + " " + secondOperand + " = " + formattedResult);
+                if (currentOperation.equals("√")) {
+                    operationText = "√" + firstOperand;
+                } else if (currentOperation.equals("1/x")) {
+                    operationText = "1 / " + firstOperand;
+                } else {
+                    operationText = firstOperand + " " + currentOperation + " " + secondOperand;
+                }
+
+                tvHistory.setText(operationText + " = " + formattedResult);
 
                 firstOperand = result;
+                resetOnNextInput = true;
 
             } catch (ParseException e) {
                 e.printStackTrace();
