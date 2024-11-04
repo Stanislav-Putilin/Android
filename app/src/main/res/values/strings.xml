@@ -34,6 +34,8 @@
 
     <string name="main_btn_game">2048</string>
 
+    <string name="main_btn_anim">anim</string>
+
     <!-- endregion -->
 
 </resources>

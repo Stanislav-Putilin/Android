@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -19,6 +21,7 @@ import java.util.Random;
 
 public class GameActivity extends AppCompatActivity {
 
+    private Animation spawnAnimation, collapseAnimation;
     private final int N = 4;
     private final int[][] cells = new int[N][N];
     private final TextView[][] tvCells = new TextView[N][N];
@@ -30,6 +33,9 @@ public class GameActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
+
+        spawnAnimation = AnimationUtils.loadAnimation(this, R.anim.game_spawn);
+        collapseAnimation = AnimationUtils.loadAnimation(this, R.anim.game_collapse);
 
         LinearLayout gameField = findViewById(R.id.game_ll_field);
         gameField.post(() -> {
@@ -48,13 +54,8 @@ public class GameActivity extends AppCompatActivity {
         showField();
 
         //NumberFormat.getInstance(Locale.ROOT).parse("1.23").doubleValue();
-        gameField.setOnTouchListener(new OnSwipeListener(GameActivity.this){
-
-
-            @Override
-            public void onSwipeBottom() {
-                Toast.makeText(GameActivity.this, "Bott", Toast.LENGTH_SHORT).show();
-            }
+        gameField.setOnTouchListener(new OnSwipeListener(GameActivity.this)
+        {
             @Override
             public void onSwipeLeft() {
                 if(moveLeft()){
@@ -62,18 +63,43 @@ public class GameActivity extends AppCompatActivity {
                     showField();
                 }
                 else{
-                    Toast.makeText(GameActivity.this, "Left", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(GameActivity.this, "No movement to the left", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onSwipeRight() {
-                Toast.makeText(GameActivity.this, "Right", Toast.LENGTH_SHORT).show();
+                if(moveRight()){
+                    spawnCell();
+                    showField();
+                }
+                else{
+                    Toast.makeText(GameActivity.this, "No movement to the right", Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
-            public void onSwipeTop() {
-                Toast.makeText(GameActivity.this, "Top", Toast.LENGTH_SHORT).show();
+            public void onSwipeTop()
+            {
+                if(moveUp()){
+                    spawnCell();
+                    showField();
+                }
+                else{
+                    Toast.makeText(GameActivity.this, "No upward movement", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            public void onSwipeBottom()
+            {
+                if(moveDown()){
+                    spawnCell();
+                    showField();
+                }
+                else{
+                    Toast.makeText(GameActivity.this, "No downward movement", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -94,6 +120,7 @@ public class GameActivity extends AppCompatActivity {
                     else {
                         if(cells[i][j] == cells[i][j0]){
                             cells[i][j] *= 2;
+                            tvCells[i][j].setTag(collapseAnimation);
                             cells[i][j0] = 0;
                             result = true;
                             j0 = -1;
@@ -115,7 +142,9 @@ public class GameActivity extends AppCompatActivity {
                 }
                 else if(j0 != -1){
                     cells[i][j0] = cells[i][j];
+                    tvCells[i][j0].setTag(tvCells[i][j].getTag());
                     cells[i][j] = 0;
+                    tvCells[i][j].setTag(null);
                     j0 += 1;
                     result = true;
                 }
@@ -124,12 +153,111 @@ public class GameActivity extends AppCompatActivity {
         return result;
     }
 
+    private boolean moveRight(){
+        boolean result = false;
+        for (int i = 0; i < N; i++) {
+            boolean wasShift;
+            do {
+                wasShift = false;
+                for (int j = N - 1; j > 0; j--) {
+                    if (cells[i][j] == 0 && cells[i][j - 1] != 0) {
+                        cells[i][j] = cells[i][j - 1];
+                        cells[i][j - 1] = 0;
+                        wasShift = result = true;
+                    }
+                }
+            }while (wasShift);
+
+            for (int j = N - 1; j > 0; j--) {
+                if (cells[i][j] == cells[i][j - 1] && cells[i][j] != 0) {
+                    cells[i][j] *= 2;
+                    tvCells[i][j].setTag(collapseAnimation);
+
+                    for (int k = j -1; k > 0; k--) {
+                        cells[i][k] = cells[i][k - 1];
+                    }
+                    cells[i][0] = 0;
+                    result = true;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private boolean moveUp() {
+        boolean result = false;
+
+        for (int j = 0; j < N; j++) {
+            boolean wasShift;
+            do {
+                wasShift = false;
+                for (int i = 1; i < N; i++) {
+                    if (cells[i - 1][j] == 0 && cells[i][j] != 0) {
+                        cells[i - 1][j] = cells[i][j];
+                        cells[i][j] = 0;
+                        wasShift = result = true;
+                    }
+                }
+            } while (wasShift);
+
+            for (int i = 1; i < N; i++) {
+                if (cells[i - 1][j] == cells[i][j] && cells[i][j] != 0) {
+                    cells[i - 1][j] *= 2;
+                    tvCells[i - 1][j].setTag(collapseAnimation);
+
+                    for (int k = i; k < N - 1; k++) {
+                        cells[k][j] = cells[k + 1][j];
+                    }
+                    cells[N - 1][j] = 0;
+                    result = true;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private boolean moveDown() {
+        boolean result = false;
+
+        for (int j = 0; j < N; j++)
+        {
+            boolean wasShift;
+            do {
+                wasShift = false;
+                for (int i = N - 2; i >= 0; i--) {
+                    if (cells[i + 1][j] == 0 && cells[i][j] != 0) {
+                        cells[i + 1][j] = cells[i][j];
+                        cells[i][j] = 0;
+                        wasShift = result = true;
+                    }
+                }
+            } while (wasShift);
+
+            for (int i = N - 2; i >= 0; i--) {
+                if (cells[i + 1][j] == cells[i][j] && cells[i][j] != 0) {
+                    cells[i + 1][j] *= 2;
+                    tvCells[i + 1][j].setTag(collapseAnimation);
+
+                    for (int k = i; k > 0; k--) {
+                        cells[k][j] = cells[k - 1][j];
+                    }
+                    cells[0][j] = 0;
+                    result = true;
+                }
+            }
+        }
+
+        return result;
+    }
+
+
     private void initField(){
 
         for (int i = 0; i < N; i++) {
             for (int j = 0; j < N; j++) {
                 cells[i][j] = 0;
-                //cells[i][j] = (int)Math.pow(2, i * N + j);
                 tvCells[i][j] = findViewById( getResources().getIdentifier("game_cell_" + i + j,"id",getPackageName()));
             }
         }
@@ -153,6 +281,9 @@ public class GameActivity extends AppCompatActivity {
 
         Coordinates randomCoordinates = freeCells.get(random.nextInt(freeCells.size()));
         cells[randomCoordinates.x][randomCoordinates.y] = random.nextInt(10) == 0 ? 4 : 2;
+
+        tvCells[randomCoordinates.x][randomCoordinates.y].setTag(spawnAnimation);
+
         return true;
     }
 
@@ -178,6 +309,12 @@ public class GameActivity extends AppCompatActivity {
                                 "color",
                                 getPackageName()),
                         getTheme()));
+
+                if(tvCells[i][j].getTag() instanceof Animation){
+
+                    tvCells[i][j].startAnimation((Animation)tvCells[i][j].getTag());
+                    tvCells[i][j].setTag(null);
+                }
             }
         }
     }

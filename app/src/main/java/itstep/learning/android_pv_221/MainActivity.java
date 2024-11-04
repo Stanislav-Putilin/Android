@@ -16,6 +16,14 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.main_btn_game).setOnClickListener(this::onGameButtonClick);
         findViewById(R.id.main_btn_calc).setOnClickListener(this::onCalcButtonClick);
+        findViewById(R.id.main_btn_anim).setOnClickListener(this::onAnimButton);
+    }
+
+    private void onAnimButton(View view)
+    {
+        Intent intent = new Intent( MainActivity.this, AnimActivity.class);
+        startActivity(intent);
+        //Toast.makeText(this, "Тут будет калькулятор", Toast.LENGTH_SHORT).show();
     }
 
     private void onCalcButtonClick(View view)
