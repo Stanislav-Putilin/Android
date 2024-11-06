@@ -3,6 +3,7 @@ package itstep.learning.android_pv_221;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -25,6 +26,9 @@ public class GameActivity extends AppCompatActivity {
     private final int N = 4;
     private final int[][] cells = new int[N][N];
     private final TextView[][] tvCells = new TextView[N][N];
+    private Animation scale_2048;
+    private int score, bestScore;
+    private TextView tvScore, tvBestScore;
 
     private final Random random = new Random();
 
@@ -34,10 +38,15 @@ public class GameActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
+        scale_2048 = AnimationUtils.loadAnimation(this, R.anim.scale_2048);
         spawnAnimation = AnimationUtils.loadAnimation(this, R.anim.game_spawn);
         collapseAnimation = AnimationUtils.loadAnimation(this, R.anim.game_collapse);
 
         LinearLayout gameField = findViewById(R.id.game_ll_field);
+        tvScore = findViewById( R.id.game_tv_score );
+        tvBestScore = findViewById( R.id.game_tv_best_score );
+        findViewById(R.id.game_btn_new).setOnClickListener(this::startNewGame);
+
         gameField.post(() -> {
             int vw = this.getWindow().getDecorView().getWidth();
             int fieldMargin = 20;
@@ -49,9 +58,7 @@ public class GameActivity extends AppCompatActivity {
             gameField.setLayoutParams(layoutParams);
         });
 
-        initField();
-        spawnCell();
-        showField();
+        startNewGame();
 
         //NumberFormat.getInstance(Locale.ROOT).parse("1.23").doubleValue();
         gameField.setOnTouchListener(new OnSwipeListener(GameActivity.this)
@@ -120,6 +127,7 @@ public class GameActivity extends AppCompatActivity {
                     else {
                         if(cells[i][j] == cells[i][j0]){
                             cells[i][j] *= 2;
+                            score += cells[i][j];
                             tvCells[i][j].setTag(collapseAnimation);
                             cells[i][j0] = 0;
                             result = true;
@@ -171,6 +179,7 @@ public class GameActivity extends AppCompatActivity {
             for (int j = N - 1; j > 0; j--) {
                 if (cells[i][j] == cells[i][j - 1] && cells[i][j] != 0) {
                     cells[i][j] *= 2;
+                    score += cells[i][j];
                     tvCells[i][j].setTag(collapseAnimation);
 
                     for (int k = j -1; k > 0; k--) {
@@ -204,6 +213,7 @@ public class GameActivity extends AppCompatActivity {
             for (int i = 1; i < N; i++) {
                 if (cells[i - 1][j] == cells[i][j] && cells[i][j] != 0) {
                     cells[i - 1][j] *= 2;
+                    score += cells[i - 1][j];
                     tvCells[i - 1][j].setTag(collapseAnimation);
 
                     for (int k = i; k < N - 1; k++) {
@@ -238,6 +248,7 @@ public class GameActivity extends AppCompatActivity {
             for (int i = N - 2; i >= 0; i--) {
                 if (cells[i + 1][j] == cells[i][j] && cells[i][j] != 0) {
                     cells[i + 1][j] *= 2;
+                    score += cells[i + 1][j];
                     tvCells[i + 1][j].setTag(collapseAnimation);
 
                     for (int k = i; k > 0; k--) {
@@ -261,7 +272,6 @@ public class GameActivity extends AppCompatActivity {
                 tvCells[i][j] = findViewById( getResources().getIdentifier("game_cell_" + i + j,"id",getPackageName()));
             }
         }
-
     }
 
     private boolean spawnCell()
@@ -292,11 +302,16 @@ public class GameActivity extends AppCompatActivity {
             for (int j = 0; j < N; j++) {
 
                 tvCells[i][j].setText(String.valueOf(cells[i][j]));
-                tvCells[i][j].setBackgroundColor(getResources().getColor(
-                        getResources().getIdentifier(cells[i][j] <= 2048 ? "game_tile_" + cells[i][j] : "game_tile_other",
-                                "color",
-                                getPackageName()),
-                        getTheme()));
+                tvCells[i][j].getBackground().setColorFilter(
+                        getResources().getColor(
+                                getResources().getIdentifier(
+                                        cells[i][j] <= 2048
+                                                ? "game_tile_" + cells[i][j]
+                                                : "game_tile_other",
+                                        "color",
+                                        getPackageName()
+                                ),
+                        getTheme()), PorterDuff.Mode.SRC_ATOP);
             }
         }
 
@@ -317,6 +332,27 @@ public class GameActivity extends AppCompatActivity {
                 }
             }
         }
+
+        tvScore.setText( getString( R.string.game_tv_score, String.valueOf( score ) ) );
+        if( score > bestScore ) {
+            bestScore = score;
+            tvBestScore.startAnimation(scale_2048);
+        }
+        tvBestScore.setText( getString( R.string.game_tv_best, String.valueOf( bestScore ) ) );
+    }
+
+    private void startNewGame(View view)
+    {
+        view.startAnimation(scale_2048);
+        startNewGame();
+    }
+    private void startNewGame()
+    {
+        score = 0;
+        bestScore = 0;
+        initField();
+        spawnCell();
+        showField();
     }
 
     static class Coordinates{

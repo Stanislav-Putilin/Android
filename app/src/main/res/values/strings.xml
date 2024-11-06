@@ -38,6 +38,23 @@
 
     <string name="main_btn_anim">anim</string>
 
+    <string name="game_tv_score">SCORE\n%s</string>
+    <string name="game_tv_best">BEST\n%s</string>
+    <string name="game_btn_new">NEW</string>
+    <string name="game_btn_undo">UNDO</string>
+    <string name="game_tv_hint">2048</string>
+    <string name="game_tv_2048">2048</string>
+
+
+    <!-- region Anim -->
+    <string name="anim_tv_alpha">Альфа</string>
+    <string name="anim_tv_scale">Масштаб</string>
+    <string name="anim_tv_rotate">Поворот</string>
+    <string name="anim_tv_translate">Зміщення</string>
+    <string name="anim_tv_combo">Combo</string>
+
+    <!-- endregion -->
+
     <!-- endregion -->
 
 </resources>

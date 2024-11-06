@@ -52,6 +52,7 @@
     <color name="game_text_2048">#F8F7F1</color>
     <color name="game_text_other">#F8F6EF</color>
 
+    <color name="game_tv_background">#3B3B31</color>
     <color name="game_first_text_color">#766D65</color>
     <color name="game_second_text_color">#F5F4F4</color>
     <!-- endregion -->
