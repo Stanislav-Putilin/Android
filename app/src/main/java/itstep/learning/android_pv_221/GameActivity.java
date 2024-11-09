@@ -86,7 +86,10 @@ public class GameActivity extends AppCompatActivity {
                     saveField();
                     moveLeft();
                     if(!isRecord){
-                        checkGameWin();
+                        if(checkForWin())
+                        {
+                            showGameWinMessage();
+                        }
                     }
                     spawnCell();
                     showField();
@@ -105,7 +108,10 @@ public class GameActivity extends AppCompatActivity {
                     saveField();
                     moveRight();
                     if(!isRecord){
-                        checkGameWin();
+                        if(checkForWin())
+                        {
+                            showGameWinMessage();
+                        }
                     }
                     spawnCell();
                     showField();
@@ -123,6 +129,12 @@ public class GameActivity extends AppCompatActivity {
                 if (canMoveUp()) {
                     saveField();
                     moveUp();
+                    if(!isRecord){
+                        if(checkForWin())
+                        {
+                            showGameWinMessage();
+                        }
+                    }
                     spawnCell();
                     showField();
                 } else {
@@ -140,7 +152,10 @@ public class GameActivity extends AppCompatActivity {
                     saveField();
                     moveDown();
                     if(!isRecord){
-                        checkGameWin();
+                        if(checkForWin())
+                        {
+                            showGameWinMessage();
+                        }
                     }
                     spawnCell();
                     showField();
@@ -456,10 +471,16 @@ public class GameActivity extends AppCompatActivity {
     private void changeIsRecord(){
         isRecord = true;
     }
-    private void checkGameWin(){
-        if(score >= 2048){
-            showGameWinMessage();
+
+    private boolean checkForWin() {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (cells[i][j] >= 2048) {
+                    return true;
+                }
+            }
         }
+        return false;
     }
     private void saveField()
     {
