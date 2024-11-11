@@ -4,6 +4,10 @@
     <string name="main_btn_calc">Калькулятор</string>
 
     <string name="calc_tv_title">Калькулятор</string>
+    <string name="main_btn_exchange">Exchange</string>
+    <string name="exchange_tv_title">Курс гривны</string>
+
+
 
     <!-- region Calc -->
     <string name="calc_btn_percent">%</string>
@@ -52,6 +56,10 @@
     <string name="anim_tv_rotate">Поворот</string>
     <string name="anim_tv_translate">Зміщення</string>
     <string name="anim_tv_combo">Combo</string>
+
+    <string name="main_btn_chat">Chat</string>
+
+    main_btn_anim
 
     <!-- endregion -->
 

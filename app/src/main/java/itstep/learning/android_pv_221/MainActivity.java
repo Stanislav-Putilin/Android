@@ -17,11 +17,20 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.main_btn_game).setOnClickListener(this::onGameButtonClick);
         findViewById(R.id.main_btn_calc).setOnClickListener(this::onCalcButtonClick);
         findViewById(R.id.main_btn_anim).setOnClickListener(this::onAnimButton);
+        findViewById(R.id.main_btn_chat).setOnClickListener(this::onChatButton);
+        findViewById(R.id.main_btn_exchange).setOnClickListener(this::onExchangeButtonClick);
     }
 
     private void onAnimButton(View view)
     {
         Intent intent = new Intent( MainActivity.this, AnimActivity.class);
+        startActivity(intent);
+        //Toast.makeText(this, "Тут будет калькулятор", Toast.LENGTH_SHORT).show();
+    }
+
+    private void onChatButton(View view)
+    {
+        Intent intent = new Intent( MainActivity.this, ChatActivity.class);
         startActivity(intent);
         //Toast.makeText(this, "Тут будет калькулятор", Toast.LENGTH_SHORT).show();
     }
@@ -39,4 +48,14 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
         //Toast.makeText(this, "Тут будет калькулятор", Toast.LENGTH_SHORT).show();
     }
+
+    private void onExchangeButtonClick(View view)
+    {
+        Intent intent = new Intent( MainActivity.this, ExchangeRateActivity.class);
+        startActivity(intent);
+        //Toast.makeText(this, "Тут будет калькулятор", Toast.LENGTH_SHORT).show();
+    }
+
+
+
 }

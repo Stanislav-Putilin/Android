@@ -71,6 +71,28 @@
             android:textSize="20sp"
             />
 
+        <Button
+            android:id="@+id/main_btn_chat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/main_btn_chat"
+            app:backgroundTint="@null"
+            android:background="@color/main_btn_background"
+            android:layout_marginTop="40dp"
+            android:textSize="20sp"
+            />
+
+        <Button
+            android:id="@+id/main_btn_exchange"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/main_btn_exchange"
+            app:backgroundTint="@null"
+            android:background="@color/main_btn_background"
+            android:layout_marginTop="40dp"
+            android:textSize="20sp"
+            />
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
