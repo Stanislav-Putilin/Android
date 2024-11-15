@@ -6,6 +6,9 @@
     <string name="calc_tv_title">Калькулятор</string>
     <string name="main_btn_exchange">Exchange</string>
     <string name="exchange_tv_title">Курс гривны</string>
+    <string name="exchange_content_description">Список курсов валют</string>
+
+    Список курсов валют
 
 
 

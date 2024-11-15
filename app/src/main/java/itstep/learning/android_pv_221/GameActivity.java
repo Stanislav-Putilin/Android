@@ -468,6 +468,8 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
+
+
     private void changeIsRecord(){
         isRecord = true;
     }

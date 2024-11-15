@@ -2,40 +2,164 @@ package itstep.learning.android_pv_221;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.Gson;
 
 import org.w3c.dom.Text;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ChatActivity extends AppCompatActivity {
 
+    private final String authorInfoFilename = "author_info.chat";
+    private String authorName;
     private final String chatUrl = "https://chat.momentfor.fun/";
     private TextView tvTitle;
     private LinearLayout chatContainer;
+    private ScrollView chatScroller;
+    private EditText etAuthor;
+    private EditText etMessage;
     private final ExecutorService threadPool = Executors.newFixedThreadPool(3);
     private final Gson gson = new Gson();
+    private static final SimpleDateFormat sqlDateFormat = new SimpleDateFormat(
+           "yyyy-MM-dd HH:mm:ss", Locale.ROOT
+    );
+    private final Handler handler = new Handler();
+    private final List<ChatMessage> messages = new ArrayList<>();
+
+    private Animation bellAnimation;
+    private View vBell;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
+
         tvTitle = findViewById(R.id.chat_tv_title);
         chatContainer = findViewById(R.id.chat_ll_container);
+        chatScroller = findViewById(R.id.chat_scroller);
+        etAuthor = findViewById(R.id.chat_et_author);
+        etMessage = findViewById(R.id.chat_et_massage);
+        bellAnimation = AnimationUtils.loadAnimation(this, R.anim.bell);
+        vBell = findViewById(R.id.chat_bell);
+        findViewById(R.id.chat_btn_send).setOnClickListener(this::sendButtonClick);
+
+        loadAuthorNameFromFile();
+
+        handler.post(this::periodic);
+        chatScroller.addOnLayoutChangeListener(
+                (View v,
+                 int left,    int top,    int right,    int bottom,
+                 int leftWas, int topWas, int rightWas, int bottomWas) ->
+                        chatScroller.post( ()-> chatScroller.fullScroll( View.FOCUS_DOWN )));
+    }
+
+    private void periodic(){
         loadChat();
+        handler.postDelayed(this::periodic, 3000);
+    }
+
+    private void sendButtonClick(View view){
+        String author = etAuthor.getText().toString();
+
+        if(author.isEmpty()){
+            Toast.makeText(this,"Empty author",Toast.LENGTH_SHORT).show();
+            return;}
+
+        String message = etMessage.getText().toString();
+        if(message.isEmpty()){
+            Toast.makeText(this,"Empty message",Toast.LENGTH_SHORT).show();
+            return;}
+
+        CompletableFuture.runAsync(()->
+                sendChatMessage(
+                        new ChatMessage()
+                                .setAuthor(author)
+                                .setText(message)
+                                .setMoment(sqlDateFormat.format((new Date())))),
+                threadPool
+        );
+    }
+
+    private void sendChatMessage(ChatMessage chatMessage){
+
+        try {
+            URL url = new URL(chatUrl);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            connection.setDoInput(true);
+            connection.setDoOutput(true);
+
+            connection.setChunkedStreamingMode(0); //одним пакетом(не делить)
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Connection", "Close");
+
+            OutputStream bodyStream = connection.getOutputStream();
+
+            bodyStream.write(
+            String.format("author=%s&msg=%s",
+                    URLEncoder.encode(chatMessage.getAuthor(),StandardCharsets.UTF_8.name()),
+                    URLEncoder.encode(chatMessage.getText(),StandardCharsets.UTF_8.name())
+                    ).getBytes(StandardCharsets.UTF_8));
+
+            bodyStream.flush(); //передача запроса
+            bodyStream.close();
+
+            int statusCode = connection.getResponseCode();
+            if(statusCode >= 200 && statusCode < 300){
+                Log.i("sendChatMessage", "Message sent");
+                loadChat();
+            }
+            else
+            {
+                InputStream responseStream = connection.getErrorStream();
+
+                Log.e("sendChatMessage", readString(responseStream));
+
+                responseStream.close();
+            }
+            connection.disconnect();
+        }catch (Exception ex)
+        {
+            Log.e("sendChatMessage", ex.getMessage() == null ? ex.getClass().toString() : ex.getMessage());
+        }
     }
 
     private void loadChat()
@@ -43,7 +167,7 @@ public class ChatActivity extends AppCompatActivity {
         CompletableFuture
                 .supplyAsync(this::getChatAsString, threadPool)
                 .thenApply(this::processChatResponse)
-                .thenAccept(this::displayChatMessages);
+                .thenAccept(m -> runOnUiThread(() -> displayChatMessages(m)));
     }
 
     private ChatMessage[] processChatResponse( String jsonString ) {
@@ -53,8 +177,66 @@ public class ChatActivity extends AppCompatActivity {
 
     private void displayChatMessages(ChatMessage[] chatMessages  ){
 
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);layoutParams.setMargins(10, 5, 10, 5);for( ChatMessage cm : chatMessages ) {    TextView tv = new TextView( ChatActivity.this );    tv.setText( cm.getAuthor() + cm.getText() );    tv.setPadding( 10, 5, 10, 5 );    tv.setBackgroundColor( R.color.app_background );    tv.setLayoutParams( layoutParams );    runOnUiThread( () -> chatContainer.addView( tv ) ) ;}
+        boolean wasNew = false;
+        for( ChatMessage cm : chatMessages )
+        {
+            if(messages.stream().noneMatch(m->m.getId().equals(cm.getId()))){
+                messages.add(cm);
+                wasNew = true;
+            }
+        }
 
+        if(!wasNew) return;
+
+        messages.sort(Comparator.comparing(ChatMessage::getMoment));
+
+        Drawable bgOther = getResources().getDrawable(R.drawable.chat_msg_other, getTheme());
+        Drawable bgAuthor = getResources().getDrawable(R.drawable.chat_msg_author, getTheme());
+
+        //runOnUiThread(()-> chatContainer.removeAllViews());
+
+        for( ChatMessage m : messages )
+        {
+            if(m.getView() != null) continue;
+
+            LinearLayout linearLayout = new LinearLayout(ChatActivity.this);
+            linearLayout.setOrientation(LinearLayout.VERTICAL);
+
+            TextView tv = new TextView( ChatActivity.this );
+            tv.setText( m.getAuthor() + " " + m.getMoment());
+
+            tv.setPadding( 30, 15, 30, 5 );
+            linearLayout.addView(tv);
+
+            tv = new TextView( ChatActivity.this );
+            tv.setText( m.getText());
+            tv.setPadding( 20, 5, 20, 5 );
+            linearLayout.addView(tv);
+
+            boolean isAuthor = m.getAuthor().equals(etAuthor.getText().toString());
+            linearLayout.setBackground( isAuthor ? bgAuthor : bgOther );
+
+            LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+
+            if (isAuthor) {
+                layoutParams.setMargins(50, 5, 20, 5);
+                layoutParams.gravity = Gravity.END;
+            } else {
+                layoutParams.setMargins(20, 5, 50, 5);
+                layoutParams.gravity = Gravity.START;
+            }
+
+            linearLayout.setLayoutParams( layoutParams );
+            m.setView(linearLayout);
+            chatContainer.addView(linearLayout);
+        }
+        chatContainer.post(()->
+        {
+            chatScroller.fullScroll(View.FOCUS_DOWN);
+            vBell.startAnimation(bellAnimation);
+        });
     }
 
     private String getChatAsString(){
@@ -76,8 +258,47 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
         threadPool.shutdownNow();
         super.onDestroy();
+    }
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN)
+        {
+            EditText focusedView = getCurrentFocus() instanceof EditText ? (EditText) getCurrentFocus() : null;
+            if (focusedView != null) {
+                int[] location = new int[2];
+                focusedView.getLocationOnScreen(location);
+                float x = ev.getRawX();
+                float y = ev.getRawY();
+
+                if (x < location[0] || x > location[0] + focusedView.getWidth() ||
+                        y < location[1] || y > location[1] + focusedView.getHeight())
+                {
+                    hideKeyboard();
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private void hideKeyboard()
+    {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (getCurrentFocus() != null && imm != null)
+        {
+            imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+        }
+    }
+    private void loadAuthorNameFromFile(){
+        try(FileInputStream fis = openFileInput(authorInfoFilename)) {
+            DataInputStream read = new DataInputStream(fis);
+            authorName = read.readUTF();
+            read.close();
+        } catch (IOException ex) {
+            Log.e("ChatActivity::loadAuthorNameFromFile", ex.getMessage() != null ? ex.getMessage() : "Error reading file" );
+        }
     }
 
     private String readString(InputStream stream) throws IOException{
@@ -112,6 +333,16 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
     class ChatMessage{
+       private  View view;
+
+        public void setView(View view) {
+            this.view = view;
+        }
+
+        public View getView() {
+            return view;
+        }
+
         private String id;
         private String author;
         private String text;
@@ -121,16 +352,19 @@ public class ChatActivity extends AppCompatActivity {
             this.id = id;
         }
 
-        public void setAuthor(String author) {
+        public ChatMessage setAuthor(String author) {
             this.author = author;
+            return this;
         }
 
-        public void setText(String text) {
+        public ChatMessage setText(String text) {
             this.text = text;
+            return this;
         }
 
-        public void setMoment(String moment) {
+        public ChatMessage setMoment(String moment) {
             this.moment = moment;
+            return this;
         }
 
         public String getId() {
@@ -150,4 +384,3 @@ public class ChatActivity extends AppCompatActivity {
         }
     }
 }
-
