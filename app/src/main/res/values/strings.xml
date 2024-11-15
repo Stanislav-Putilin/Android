@@ -61,6 +61,8 @@
     <string name="anim_tv_combo">Combo</string>
 
     <string name="main_btn_chat">Chat</string>
+    <string name="savename">SaveName</string>
+    <string name="author">Author:</string>
 
     main_btn_anim
 

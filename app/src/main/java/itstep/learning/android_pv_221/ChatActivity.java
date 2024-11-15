@@ -14,7 +14,9 @@ import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -26,7 +28,9 @@ import org.w3c.dom.Text;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -48,6 +52,8 @@ import java.util.concurrent.Executors;
 public class ChatActivity extends AppCompatActivity {
 
     private final String authorInfoFilename = "author_info.chat";
+    private ImageButton saveAuthorNameButton;
+    private ImageButton sendBtn;
     private String authorName;
     private final String chatUrl = "https://chat.momentfor.fun/";
     private TextView tvTitle;
@@ -77,9 +83,24 @@ public class ChatActivity extends AppCompatActivity {
         etMessage = findViewById(R.id.chat_et_massage);
         bellAnimation = AnimationUtils.loadAnimation(this, R.anim.bell);
         vBell = findViewById(R.id.chat_bell);
-        findViewById(R.id.chat_btn_send).setOnClickListener(this::sendButtonClick);
+
+        saveAuthorNameButton = findViewById(R.id.chat_btn_authorName);
+        sendBtn = findViewById(R.id.chat_btn_send);
+
+        sendBtn.setOnClickListener(this::sendButtonClick);
+        saveAuthorNameButton.setOnClickListener(this::saveNameAuthorButtonClick);
+
+        sendBtn.setVisibility(View.GONE);
 
         loadAuthorNameFromFile();
+
+        if(authorName != null && !authorName.trim().isEmpty())
+        {
+            etAuthor.setText(authorName);
+            saveAuthorNameButton.setVisibility(View.GONE);
+            sendBtn.setVisibility(View.VISIBLE);
+        }
+
 
         handler.post(this::periodic);
         chatScroller.addOnLayoutChangeListener(
@@ -282,7 +303,6 @@ public class ChatActivity extends AppCompatActivity {
         }
         return super.dispatchTouchEvent(ev);
     }
-
     private void hideKeyboard()
     {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
@@ -291,6 +311,32 @@ public class ChatActivity extends AppCompatActivity {
             imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
         }
     }
+
+    private void saveNameAuthorButtonClick(View view)
+    {
+        saveNameAuthorButtonClick();
+    }
+
+    private void saveNameAuthorButtonClick()
+    {
+        if(!etAuthor.getText().toString().trim().isEmpty())
+        {
+            try(FileOutputStream fos = openFileOutput(authorInfoFilename, Context.MODE_PRIVATE)) {
+                DataOutputStream writer = new DataOutputStream(fos);
+                writer.writeUTF(etAuthor.getText().toString());
+                writer.flush();
+                writer.close();
+                authorName = etAuthor.getText().toString();
+                saveAuthorNameButton.setVisibility(View.GONE);
+                sendBtn.setVisibility(View.VISIBLE);
+            } catch (IOException ex) {
+                Log.e("GameActivity::saveBestScore", ex.getMessage() != null ? ex.getMessage() : "Error writing file" );
+            }
+        }else{
+            Toast.makeText(ChatActivity.this, "Enter name author!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
     private void loadAuthorNameFromFile(){
         try(FileInputStream fis = openFileInput(authorInfoFilename)) {
             DataInputStream read = new DataInputStream(fis);
@@ -300,7 +346,6 @@ public class ChatActivity extends AppCompatActivity {
             Log.e("ChatActivity::loadAuthorNameFromFile", ex.getMessage() != null ? ex.getMessage() : "Error reading file" );
         }
     }
-
     private String readString(InputStream stream) throws IOException{
         ByteArrayOutputStream byteBuilder = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];

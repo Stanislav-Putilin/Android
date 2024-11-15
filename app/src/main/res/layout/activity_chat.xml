@@ -22,7 +22,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Author:"/>
+            android:text="@string/author"/>
 
         <EditText
             android:id="@+id/chat_et_author"
@@ -33,6 +33,13 @@
             android:minHeight="48dp"
             />
 
+        <ImageButton
+            android:id="@+id/chat_btn_authorName"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:contentDescription="@string/savename"
+            android:src="@android:drawable/ic_menu_save" />
+
         <View
             android:id="@+id/chat_bell"
             android:layout_width="48dp"
@@ -40,12 +47,7 @@
             android:background="@android:drawable/ic_popup_reminder"
             android:backgroundTint="@color/calc_btn_digit" />
 
-        <ImageButton
-            android:id="@+id/chat_btn_authorName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="Send"
-            android:src="@android:drawable/ic_menu_send" />
+
     </LinearLayout>
 
     <ScrollView
