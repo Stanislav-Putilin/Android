@@ -115,10 +115,9 @@ public class ChatActivity extends AppCompatActivity {
         handler.postDelayed(this::periodic, 3000);
     }
 
-    private void sendButtonClick(View view){
-        String author = etAuthor.getText().toString();
-
-        if(author.isEmpty()){
+    private void sendButtonClick(View view)
+    {
+        if(authorName == null || authorName.trim().isEmpty()){
             Toast.makeText(this,"Empty author",Toast.LENGTH_SHORT).show();
             return;}
 
@@ -130,7 +129,7 @@ public class ChatActivity extends AppCompatActivity {
         CompletableFuture.runAsync(()->
                 sendChatMessage(
                         new ChatMessage()
-                                .setAuthor(author)
+                                .setAuthor(authorName)
                                 .setText(message)
                                 .setMoment(sqlDateFormat.format((new Date())))),
                 threadPool
