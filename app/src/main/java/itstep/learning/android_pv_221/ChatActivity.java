@@ -1,9 +1,21 @@
 package itstep.learning.android_pv_221;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.media.MediaPlayer;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -17,6 +29,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -43,8 +56,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,8 +71,8 @@ public class ChatActivity extends AppCompatActivity {
     private ImageButton sendBtn;
     private String authorName;
     private final String chatUrl = "https://chat.momentfor.fun/";
-    private TextView tvTitle;
     private LinearLayout chatContainer;
+    private LinearLayout emojiContainer;
     private ScrollView chatScroller;
     private EditText etAuthor;
     private EditText etMessage;
@@ -71,18 +86,33 @@ public class ChatActivity extends AppCompatActivity {
 
     private Animation bellAnimation;
     private View vBell;
+
+    String smiley = new String(Character.toChars(0x1F600));
+    private final Map<String, String> emoji = new HashMap<String, String>(){{
+        put(":)", new String(Character.toChars(0x1F600)));
+        put(":|", new String(Character.toChars(0x1F611)));
+        put(":(", new String(Character.toChars(0x1F61F)));
+
+    }};
+
+    private MediaPlayer incomingMessage;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
-        tvTitle = findViewById(R.id.chat_tv_title);
         chatContainer = findViewById(R.id.chat_ll_container);
+        emojiContainer= findViewById(R.id.chat_ll_emoji);
+
+
         chatScroller = findViewById(R.id.chat_scroller);
         etAuthor = findViewById(R.id.chat_et_author);
         etMessage = findViewById(R.id.chat_et_massage);
         bellAnimation = AnimationUtils.loadAnimation(this, R.anim.bell);
         vBell = findViewById(R.id.chat_bell);
+
+        incomingMessage = MediaPlayer.create(this, R.raw.hit_00);
 
         saveAuthorNameButton = findViewById(R.id.chat_btn_authorName);
         sendBtn = findViewById(R.id.chat_btn_send);
@@ -101,13 +131,81 @@ public class ChatActivity extends AppCompatActivity {
             sendBtn.setVisibility(View.VISIBLE);
         }
 
-
         handler.post(this::periodic);
         chatScroller.addOnLayoutChangeListener(
                 (View v,
                  int left,    int top,    int right,    int bottom,
                  int leftWas, int topWas, int rightWas, int bottomWas) ->
                         chatScroller.post( ()-> chatScroller.fullScroll( View.FOCUS_DOWN )));
+        for(Map.Entry<String,String> e : emoji.entrySet())
+        {
+            TextView tv = new TextView(this);
+            tv.setText(e.getValue());
+            tv.setTextSize(20);
+            tv.setOnClickListener(v->etMessage.setText(etMessage.getText() + e.getValue()));
+            emojiContainer.addView(tv);
+        }
+
+        urlToImgView(
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/ChatGPT-Logo.svg/512px-ChatGPT-Logo.svg.png?20240214002031",
+                findViewById(R.id.chat_img));
+    }
+
+    private void showNotification()
+    {
+        NotificationChannel channel = new NotificationChannel(
+                "ChatChannel",
+                "ChatChannel",
+                NotificationManager.IMPORTANCE_DEFAULT);
+
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+
+        notificationManager.createNotificationChannel(channel);
+
+        if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ActivityCompat.checkSelfPermission( this,
+                        android.Manifest.permission.POST_NOTIFICATIONS ) !=
+                        PackageManager.PERMISSION_GRANTED ) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[] { android.Manifest.permission.POST_NOTIFICATIONS },
+                    1002 ) ;
+            return;
+        }
+
+        Intent intent = new Intent(this, ChatActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "ChatChannel")
+                .setSmallIcon(android.R.drawable.star_big_on)
+                .setContentTitle("Chat")
+                .setContentText("New message")
+                .setPriority(NotificationManager.IMPORTANCE_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true);
+
+        Notification notification = builder.build();
+        notificationManager.notify(1001, notification);
+    }
+
+    private void urlToImgView(String url, ImageView imageView){
+        CompletableFuture
+                .supplyAsync(()->{
+                    try(InputStream inputStream = new URL(url).openStream())
+                    {
+                        return BitmapFactory.decodeStream(inputStream );
+                    }
+                    catch (IOException ex){
+                        Log.e("url", ex.getMessage());
+                                return null;
+                    }
+                }, threadPool).thenAccept(bmp -> runOnUiThread(() -> imageView.setImageBitmap(bmp)));
     }
 
     private void periodic(){
@@ -156,10 +254,10 @@ public class ChatActivity extends AppCompatActivity {
             bodyStream.write(
             String.format("author=%s&msg=%s",
                     URLEncoder.encode(chatMessage.getAuthor(),StandardCharsets.UTF_8.name()),
-                    URLEncoder.encode(chatMessage.getText(),StandardCharsets.UTF_8.name())
+                    URLEncoder.encode(encodeEmoji(chatMessage.getText()), StandardCharsets.UTF_8.name())
                     ).getBytes(StandardCharsets.UTF_8));
 
-            bodyStream.flush(); //передача запроса
+            bodyStream.flush();
             bodyStream.close();
 
             int statusCode = connection.getResponseCode();
@@ -195,12 +293,28 @@ public class ChatActivity extends AppCompatActivity {
         return chatResponse.data;
     }
 
+    private String encodeEmoji(String input){
+        for(Map.Entry<String,String> e : emoji.entrySet())
+        {
+            input = input.replace(e.getValue(), e.getKey());
+        }
+        return input;
+    }
+    private String decodeEmoji(String input){
+        for(Map.Entry<String,String> e : emoji.entrySet())
+        {
+            input = input.replace(e.getKey(), e.getValue());
+        }
+        return input;
+    }
+
     private void displayChatMessages(ChatMessage[] chatMessages  ){
 
         boolean wasNew = false;
         for( ChatMessage cm : chatMessages )
         {
             if(messages.stream().noneMatch(m->m.getId().equals(cm.getId()))){
+                cm.setText(decodeEmoji(cm.getText()));
                 messages.add(cm);
                 wasNew = true;
             }
@@ -256,6 +370,8 @@ public class ChatActivity extends AppCompatActivity {
         {
             chatScroller.fullScroll(View.FOCUS_DOWN);
             vBell.startAnimation(bellAnimation);
+            incomingMessage.start();
+            showNotification();
         });
     }
 
@@ -315,7 +431,6 @@ public class ChatActivity extends AppCompatActivity {
     {
         saveNameAuthorButtonClick();
     }
-
     private void saveNameAuthorButtonClick()
     {
         if(!etAuthor.getText().toString().trim().isEmpty())
@@ -335,7 +450,6 @@ public class ChatActivity extends AppCompatActivity {
             Toast.makeText(ChatActivity.this, "Enter name author!", Toast.LENGTH_SHORT).show();
         }
     }
-
     private void loadAuthorNameFromFile(){
         try(FileInputStream fis = openFileInput(authorInfoFilename)) {
             DataInputStream read = new DataInputStream(fis);
